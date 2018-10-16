@@ -3,32 +3,37 @@ package com.example.hello.impl
 import com.lightbend.lagom.scaladsl.persistence.ReadSideProcessor.ReadSideHandler
 import com.lightbend.lagom.scaladsl.persistence.slick.SlickReadSide
 import com.lightbend.lagom.scaladsl.persistence.{AggregateEventTag, EventStreamElement, ReadSideProcessor}
+import org.apache.logging.log4j.scala.Logging
 import slick.dbio.{DBIOAction, NoStream}
 
 class HelloEventProcessor(
                            readSide: SlickReadSide,
                            repo: HelloRepository
 
-                         ) extends ReadSideProcessor[HelloEvent] {
+                         ) extends ReadSideProcessor[HelloEvent] with Logging {
 
   override def buildHandler(): ReadSideHandler[HelloEvent] = {
     readSide.builder[HelloEvent]("helloEventOffset")
       .setPrepare { tag =>
         prepareStatements()
-      }.setEventHandler[GreetingMessageChanged](updateGreeting)
+      }.setEventHandler[GreetingChangedEvent](updateGreeting)
       .build()
   }
 
   override def aggregateTags: Set[AggregateEventTag[HelloEvent]] = {
-    HelloEvent.Tag.allTags
+    Set(HelloEvent.Tag)
   }
 
   def prepareStatements(): DBIOAction[Any, NoStream, Nothing] = {
+    repo.drop()
     repo.init()
   }
 
-  def updateGreeting: EventStreamElement[GreetingMessageChanged] => DBIOAction[Any, NoStream, Nothing] = {
-    e => repo.findGreetingForId(e.event.)
+  def updateGreeting: EventStreamElement[GreetingChangedEvent] => DBIOAction[Any, NoStream, Nothing] = {
+    e => {
+      logger.info(s"received event: ${e} updating db")
+      repo.update(Greeting(name= e.event.name, salutation = e.event.message))
+    }
   }
 
 }

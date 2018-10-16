@@ -1,6 +1,5 @@
 package com.example.hello.impl
 
-import com.lightbend.lagom.scaladsl.persistence.slick.SlickReadSide
 import slick.dbio.DBIOAction
 import slick.jdbc.{JdbcBackend, JdbcProfile}
 
@@ -33,21 +32,22 @@ trait GreetingTable { this: Db =>
   }
 
   val greetings = TableQuery[Greetings]
+
 }
 
-class HelloRepository(val profile: JdbcProfile, val db: JdbcBackend#Database, val slickReadSide: SlickReadSide)
+class HelloRepository(val profile: JdbcProfile, val db: JdbcBackend#Database)
   extends Db with GreetingTable {
 
   import profile.api._
-
-  import scala.concurrent.ExecutionContext.Implicits.global
 
   // ...
   def init() = DBIOAction.seq(greetings.schema.create)
   def drop() = DBIOAction.seq(greetings.schema.drop)
 
   def update(greeting:Greeting) = {
-    greetings returning greetings.map(_.id) += greeting.map(id => greeting.copy(id = Some(id)))
+    val q = for { g <- greetings if g.name == greeting.name } yield g.salutation
+    val updateAction = q.update(greeting.salutation)
+    (for { g <- greetings if g.name == greeting.name } yield g.salutation).result
   }
 
   def findGreetingForId(id:String) =

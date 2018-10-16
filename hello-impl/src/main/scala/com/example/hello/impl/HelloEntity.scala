@@ -26,7 +26,7 @@ import scala.collection.immutable.Seq
   * loaded from the database - each event will be replayed to recreate the state
   * of the entity.
   *
-  * This entity defines one event, the [[GreetingMessageChanged]] event,
+  * This entity defines one event, the [[GreetingChangedEvent]] event,
   * which is emitted when a [[UseGreetingMessage]] command is received.
   */
 class HelloEntity extends PersistentEntity {
@@ -48,11 +48,11 @@ class HelloEntity extends PersistentEntity {
     case HelloState(message, _) => Actions().onCommand[UseGreetingMessage, Done] {
 
       // Command handler for the UseGreetingMessage command
-      case (UseGreetingMessage(newMessage), ctx, state) =>
+      case (UseGreetingMessage(name, newMessage), ctx, state) =>
         // In response to this command, we want to first persist it as a
         // GreetingMessageChanged event
         ctx.thenPersist(
-          GreetingMessageChanged(newMessage)
+          GreetingChangedEvent(name, newMessage)
         ) { _ =>
           // Then once the event is successfully persisted, we respond with done.
           ctx.reply(Done)
@@ -69,7 +69,7 @@ class HelloEntity extends PersistentEntity {
     }.onEvent {
 
       // Event handler for the GreetingMessageChanged event
-      case (GreetingMessageChanged(newMessage), state) =>
+      case (GreetingChangedEvent(name, newMessage), state) =>
         // We simply update the current state to use the greeting message from
         // the event.
         HelloState(newMessage, LocalDateTime.now().toString)
@@ -110,9 +110,9 @@ object HelloEvent {
 /**
   * An event that represents a change in greeting message.
   */
-case class GreetingMessageChanged(message: String) extends HelloEvent
+case class GreetingChangedEvent(name:String, message: String) extends HelloEvent
 
-object GreetingMessageChanged {
+object GreetingChangedEvent {
 
   /**
     * Format for the greeting message changed event.
@@ -120,7 +120,7 @@ object GreetingMessageChanged {
     * Events get stored and loaded from the database, hence a JSON format
     * needs to be declared so that they can be serialized and deserialized.
     */
-  implicit val format: Format[GreetingMessageChanged] = Json.format
+  implicit val format: Format[GreetingChangedEvent] = Json.format
 }
 
 /**
@@ -134,7 +134,7 @@ sealed trait HelloCommand[R] extends ReplyType[R]
   * It has a reply type of [[Done]], which is sent back to the caller
   * when all the events emitted by this command are successfully persisted.
   */
-case class UseGreetingMessage(message: String) extends HelloCommand[Done]
+case class UseGreetingMessage(name:String, message: String) extends HelloCommand[Done]
 
 object UseGreetingMessage {
 
@@ -185,7 +185,7 @@ object HelloSerializerRegistry extends JsonSerializerRegistry {
   override def serializers: Seq[JsonSerializer[_]] = Seq(
     JsonSerializer[UseGreetingMessage],
     JsonSerializer[Hello],
-    JsonSerializer[GreetingMessageChanged],
+    JsonSerializer[GreetingChangedEvent],
     JsonSerializer[HelloState]
   )
 }

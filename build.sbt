@@ -49,6 +49,9 @@ lazy val `hello-impl` = (project in file("hello-impl"))
       macwire,
       h2db,
       akkaJdbc,
+      log4j2_api,
+      log4j2_core,
+      log4j2_api_scala,
       scalaTest
     )
   )
