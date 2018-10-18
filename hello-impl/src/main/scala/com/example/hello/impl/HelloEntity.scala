@@ -4,8 +4,9 @@ import java.time.LocalDateTime
 
 import akka.Done
 import com.lightbend.lagom.scaladsl.persistence.{AggregateEvent, AggregateEventTag, PersistentEntity}
-import com.lightbend.lagom.scaladsl.persistence.PersistentEntity.ReplyType
+import com.lightbend.lagom.scaladsl.persistence.PersistentEntity.{ReplyType, UnhandledCommandException}
 import com.lightbend.lagom.scaladsl.playjson.{JsonSerializer, JsonSerializerRegistry}
+import org.apache.logging.log4j.scala.Logging
 import play.api.libs.json.{Format, Json}
 
 import scala.collection.immutable.Seq
@@ -29,7 +30,7 @@ import scala.collection.immutable.Seq
   * This entity defines one event, the [[GreetingChangedEvent]] event,
   * which is emitted when a [[UseGreetingMessage]] command is received.
   */
-class HelloEntity extends PersistentEntity {
+class HelloEntity extends PersistentEntity with Logging {
 
   override type Command = HelloCommand[_]
   override type Event = HelloEvent
@@ -45,12 +46,24 @@ class HelloEntity extends PersistentEntity {
     * is a function of the current state to a set of actions.
     */
   override def behavior: Behavior = {
-    case HelloState(message, _) => Actions().onCommand[UseGreetingMessage, Done] {
+//    case HelloState(message, _) => actionsForHelloState(message);
+//  }
+//
+//  private def actionsForHelloState(message: String): Actions = {
+
+    case HelloState(message, _) => Actions().
+//    logger.info(s"state is HelloState, message is ${message}")
+//    val actions:Actions = new Actions(PartialFunction.empty, Map.empty)
+//
+//    logger.info(s"state is HelloState, message is ${message} actions is ${actions}")
+//    actions.
+      onCommand[UseGreetingMessage, Done] {
 
       // Command handler for the UseGreetingMessage command
       case (UseGreetingMessage(name, newMessage), ctx, state) =>
         // In response to this command, we want to first persist it as a
         // GreetingMessageChanged event
+        logger.info(s"UseGreetingMessage(${name}, ${newMessage}), ${ctx}, ${state}")
         ctx.thenPersist(
           GreetingChangedEvent(name, newMessage)
         ) { _ =>
@@ -58,6 +71,14 @@ class HelloEntity extends PersistentEntity {
           ctx.reply(Done)
         }
 
+      case (cmd, ctx, state) => {
+        logger.info(s"received (${cmd}), ${ctx}, ${state}")
+        throw new UnhandledCommandException("Oops")
+      }
+      case x => {
+        logger.info(s"Big Oops received: ${x}")
+        throw new UnhandledCommandException("Oops")
+      }
     }.onReadOnlyCommand[Hello, String] {
 
       // Command handler for the Hello command
@@ -75,7 +96,10 @@ class HelloEntity extends PersistentEntity {
         HelloState(newMessage, LocalDateTime.now().toString)
 
     }
+//    actions
   }
+
+
 }
 
 /**

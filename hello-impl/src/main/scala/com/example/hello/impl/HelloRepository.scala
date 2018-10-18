@@ -1,12 +1,11 @@
 package com.example.hello.impl
 
+import org.apache.logging.log4j.scala.Logging
 import slick.dbio.DBIOAction
 import slick.jdbc.{JdbcBackend, JdbcProfile}
 
 case class Greeting(id: Option[Int] = None, name:String, salutation:String) {
-  def greet():String = {
-      s"${salutation} ${name}"
-  }
+  def greet:String = s"${salutation} ${name}!"
 }
 
 trait Db {
@@ -36,7 +35,7 @@ trait GreetingTable { this: Db =>
 }
 
 class HelloRepository(val profile: JdbcProfile, val db: JdbcBackend#Database)
-  extends Db with GreetingTable {
+  extends Db with GreetingTable with Logging {
 
   import profile.api._
 
@@ -47,6 +46,7 @@ class HelloRepository(val profile: JdbcProfile, val db: JdbcBackend#Database)
   def update(greeting:Greeting) = {
     val q = for { g <- greetings if g.name == greeting.name } yield g.salutation
     val updateAction = q.update(greeting.salutation)
+    logger.info(s"update: ${updateAction}")
     (for { g <- greetings if g.name == greeting.name } yield g.salutation).result
   }
 

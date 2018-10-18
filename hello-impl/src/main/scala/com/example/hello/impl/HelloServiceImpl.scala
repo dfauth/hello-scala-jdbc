@@ -19,10 +19,10 @@ class HelloServiceImpl(repository:HelloRepository, persistentEntityRegistry: Per
     import scala.concurrent.ExecutionContext.Implicits.global
 
     val greeting:Future[Option[Greeting]] = repository.findGreetingForId(id)
-    greeting.map{
-      case Some(g) => g.greet
-      case None => "default greeting"
-    }
+    greeting.map {
+      case Some(g) => g
+      case None => Greeting(name = id, salutation = "Hello")
+    }.map(g => g.greet)
   }
 
   override def useGreeting(id: String) = ServiceCall { request =>
