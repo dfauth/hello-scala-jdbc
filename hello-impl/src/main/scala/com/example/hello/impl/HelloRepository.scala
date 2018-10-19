@@ -1,8 +1,10 @@
 package com.example.hello.impl
 
 import org.apache.logging.log4j.scala.Logging
-import slick.dbio.{DBIOAction}
+import slick.dbio.DBIOAction
 import slick.jdbc.{JdbcBackend, JdbcProfile}
+
+import scala.concurrent.Future
 
 case class Greeting(id: Option[Int] = None, name:String, salutation:String) {
   def greet:String = s"${salutation} ${name}!"
@@ -44,14 +46,23 @@ class HelloRepository(val profile: JdbcProfile, val db: JdbcBackend#Database)
 
   def update(greeting:Greeting): slick.dbio.DBIOAction[Any, NoStream, Nothing] = {
 
-//    greetings.filter(_.name.equals(greeting.name)).map(_.salutation).update(greeting.salutation)
-    (for { g <- greetings if g.name == greeting.name } yield g.salutation).update(greeting.salutation)
-//    val q = for { g <- greetings if g.name == greeting.name } yield g.salutation
-//    q.result.andThen(q.update(greeting.salutation))
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    for {
+      n <- greetings.filter(g => g.name === greeting.name).map(_.salutation).update(greeting.salutation)
+      result <- n match {
+        case 0 => greetings += greeting
+        case 1 => DBIO.successful(1)
+        case n => DBIO.failed(new RuntimeException("wtf..."))
+      }
+    } yield result
   }
 
-  def findGreetingForId(id:String) =
-    db.run((for (u <- greetings if u.id == id) yield u).result.headOption)
+  def findGreetingForId(name:String):Future[Option[Greeting]] = {
+    db.run((for (
+      u <- greetings.filter(g => g.name === name)
+    ) yield u).result.headOption)
+  }
 
   def findGreetings = db.run(greetings.result)
 

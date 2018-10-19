@@ -29,6 +29,7 @@ class TestSpec extends FlatSpec with Matchers with Logging {
 
     given.environment(LOCAL).get(HELLO, name).then().body(is("Hello "+name+"!")).statusCode(is[Integer](200))
     given.environment(LOCAL).post(HELLO.apply(name), Collections.singletonMap("message", salutation)).then().statusCode(is[Integer](200))
+    Thread.sleep(5000)
     given.environment(LOCAL).get(HELLO, name).then().body(is(salutation+" "+name+"!")).statusCode(is[Integer](200))
   }
 
