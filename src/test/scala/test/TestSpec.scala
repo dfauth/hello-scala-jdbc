@@ -22,6 +22,16 @@ class TestSpec extends FlatSpec with Matchers with Logging {
     given.environment(LOCAL).post(HELLO.apply("fred"), Collections.singletonMap("message", "bonjour")).then.log.body(true).statusCode(is[Integer](200))
   }
 
+  "assert that updating the salutation " should "be persisted" in {
+
+    val name:String = "fred"
+    val salutation:String = "bonjour"
+
+    given.environment(LOCAL).get(HELLO, name).then().body(is("Hello "+name+"!")).statusCode(is[Integer](200))
+    given.environment(LOCAL).post(HELLO.apply(name), Collections.singletonMap("message", salutation)).then().statusCode(is[Integer](200))
+    given.environment(LOCAL).get(HELLO, name).then().body(is(salutation+" "+name+"!")).statusCode(is[Integer](200))
+  }
+
 }
 
 

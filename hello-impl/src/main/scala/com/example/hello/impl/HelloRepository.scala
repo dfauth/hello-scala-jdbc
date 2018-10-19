@@ -1,7 +1,7 @@
 package com.example.hello.impl
 
 import org.apache.logging.log4j.scala.Logging
-import slick.dbio.DBIOAction
+import slick.dbio.{DBIOAction}
 import slick.jdbc.{JdbcBackend, JdbcProfile}
 
 case class Greeting(id: Option[Int] = None, name:String, salutation:String) {
@@ -39,15 +39,15 @@ class HelloRepository(val profile: JdbcProfile, val db: JdbcBackend#Database)
 
   import profile.api._
 
-  // ...
   def init() = DBIOAction.seq(greetings.schema.create)
   def drop() = DBIOAction.seq(greetings.schema.drop)
 
-  def update(greeting:Greeting) = {
-    val q = for { g <- greetings if g.name == greeting.name } yield g.salutation
-    val updateAction = q.update(greeting.salutation)
-    logger.info(s"update: ${updateAction}")
-    (for { g <- greetings if g.name == greeting.name } yield g.salutation).result
+  def update(greeting:Greeting): slick.dbio.DBIOAction[Any, NoStream, Nothing] = {
+
+//    greetings.filter(_.name.equals(greeting.name)).map(_.salutation).update(greeting.salutation)
+    (for { g <- greetings if g.name == greeting.name } yield g.salutation).update(greeting.salutation)
+//    val q = for { g <- greetings if g.name == greeting.name } yield g.salutation
+//    q.result.andThen(q.update(greeting.salutation))
   }
 
   def findGreetingForId(id:String) =

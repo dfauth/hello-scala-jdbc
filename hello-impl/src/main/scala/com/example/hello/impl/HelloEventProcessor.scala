@@ -14,9 +14,9 @@ class HelloEventProcessor(
 
   override def buildHandler(): ReadSideHandler[HelloEvent] = {
     readSide.builder[HelloEvent]("helloEventOffset")
-      .setPrepare { tag =>
-        prepareStatements()
-      }.setEventHandler[GreetingChangedEvent](updateGreeting)
+      .setGlobalPrepare(prepareStatements())
+      //.setPrepare { tag => prepareStatements() }
+      .setEventHandler[GreetingChangedEvent](updateGreeting)
       .build()
   }
 
